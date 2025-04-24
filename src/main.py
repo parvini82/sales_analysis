@@ -5,21 +5,20 @@ import matplotlib.pyplot as plt
 # Load Excel dataset
 df = pd.read_excel('/Users/work/PycharmProjects/sales_analysis/data/Retail.xlsx')
 
-# Replace missing CustomerID with -1 and convert to integer
+# Replace missing CustomerID with -1 and convert to integer32
 df['CustomerID'] = df['CustomerID'].fillna(-1).astype('int32')
-
 # Fill missing product descriptions with "NONE"
 df['Description'] = df['Description'].fillna('NONEٔ')
 
 # Separate returns and actual sales
-df_returns = df[df['Quantity'] < 0]
-df_sales = df[df['Quantity'] > 0]
+df_returns = df[df['Quantity'] < 0].copy()
+df_sales = df[df['Quantity'] > 0].copy()
 
 # Convert InvoiceDate to datetime format
-df_sales['InvoiceDate'] = pd.to_datetime(df_sales['InvoiceDate'])
+df_sales.loc[:, 'InvoiceDate'] = pd.to_datetime(df_sales['InvoiceDate'])
 
 # Calculate TotalPrice as Quantity * UnitPrice
-df_sales['TotalPrice'] = df_sales['Quantity'] * df_sales['UnitPrice']
+df_sales.loc[:, 'TotalPrice'] = df_sales['Quantity'] * df_sales['UnitPrice']
 
 # Set InvoiceDate as index for time-based analysis
 df_sales.set_index('InvoiceDate', inplace=True)
@@ -45,4 +44,11 @@ top_quantities = df_sales.groupby('Description')['Quantity'].sum().sort_values(a
 # Total purchase amount per customer (excluding -1)
 customer_total = df_sales[df_sales['CustomerID'] != -1].groupby('CustomerID')['TotalPrice'].sum().sort_values(ascending=False)
 
-print(customer_total.tail(10))
+monthly_country_sales = df_sales.reset_index().pivot_table(
+    values='TotalPrice',
+    index=df_sales.index.to_period('M'),  # Monthly index
+    columns='Country',
+    aggfunc='sum'
+)
+print(monthly_country_sales.head())
+
